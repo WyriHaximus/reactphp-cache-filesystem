@@ -22,8 +22,6 @@ composer require wyrihaximus/react-cache-filesystem
 ```php
 <?php
 
-use Clue\React\filesystem\Client;
-use Clue\React\filesystem\Factory as filesystemFactory;
 use React\EventLoop\Factory as LoopFactory;
 use React\Filesystem\Filesystem as ReactFilesystem;
 use WyriHaximus\React\Cache\Filesystem;

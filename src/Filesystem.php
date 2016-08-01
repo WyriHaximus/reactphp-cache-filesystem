@@ -4,6 +4,7 @@ namespace WyriHaximus\React\Cache;
 
 use React\Cache\CacheInterface;
 use React\Filesystem\Filesystem as ReactFilesystem;
+use React\Filesystem\Node\FileInterface;
 use React\Promise\PromiseInterface;
 
 class Filesystem implements CacheInterface
@@ -35,8 +36,9 @@ class Filesystem implements CacheInterface
      */
     public function get($key)
     {
-        return $this->filesystem->file($this->path . $key)->exists()->then(function () use ($key) {
-            return $this->filesystem->file($this->path . $key)->getContents();
+        $file = $this->getFile($key);
+        return $file->exists()->then(function () use ($file) {
+            return $file->getContents();
         });
     }
 
@@ -46,7 +48,19 @@ class Filesystem implements CacheInterface
      */
     public function set($key, $value)
     {
-        $this->filesystem->file($this->path . $key)->putContents($value);
+        $file = $this->getFile($key);
+        if (strpos($key, DIRECTORY_SEPARATOR) === false) {
+            $file->putContents($value);
+            return;
+        }
+
+        $path = explode(DIRECTORY_SEPARATOR, $key);
+        array_pop($path);
+        $path = implode(DIRECTORY_SEPARATOR, $path);
+
+        $this->filesystem->dir($this->path . $path)->createRecursive()->then(function () use ($file, $value) {
+            $file->putContents($value);
+        });
     }
 
     /**
@@ -54,6 +68,18 @@ class Filesystem implements CacheInterface
      */
     public function remove($key)
     {
-        $this->filesystem->file($this->path . $key)->remove();
+        $file = $this->getFile($key);
+        $file->exists()->then(function () use ($file) {
+            $file->remove();
+        });
+    }
+
+    /**
+     * @param $key
+     * @return FileInterface
+     */
+    protected function getFile($key)
+    {
+        return $this->filesystem->file($this->path . $key);
     }
 }

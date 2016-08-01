@@ -5,6 +5,7 @@ namespace WyriHaximus\Tests\React\Cache;
 use Phake;
 use React\EventLoop\Factory;
 use React\Filesystem\Filesystem as ReactFilesystem;
+use React\Filesystem\Node\DirectoryInterface;
 use React\Filesystem\Node\FileInterface;
 use React\Promise\FulfilledPromise;
 use React\Promise\PromiseInterface;
@@ -71,14 +72,44 @@ class FilesystemTest extends \PHPUnit_Framework_TestCase
         Phake::verify($file)->putContents($value);
     }
 
+    public function testSetMakeDirectory()
+    {
+        $prefix = '/tmp/';
+        $key = 'path/to/key';
+        $dirKey = 'path/to';
+        $value = 'value';
+        $file = Phake::mock(FileInterface::class);
+        $dir = Phake::mock(DirectoryInterface::class);
+        Phake::when($dir)->createRecursive()->thenReturn(new FulfilledPromise());
+        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
+        Phake::when($this->filesystem)->dir($prefix . $dirKey)->thenReturn($dir);
+        (new Filesystem($this->filesystem, $prefix))->set($key, $value);
+        Phake::verify($this->filesystem)->file($prefix . $key);
+        Phake::verify($this->filesystem)->dir($prefix . $dirKey);
+        Phake::verify($file)->putContents($value);
+    }
+
     public function testRemove()
     {
         $prefix = 'root:';
         $key = 'key';
         $file = Phake::mock(FileInterface::class);
+        Phake::when($file)->exists()->thenReturn(new FulfilledPromise());
         Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
         (new Filesystem($this->filesystem, $prefix))->remove($key);
         Phake::verify($this->filesystem)->file($prefix . $key);
         Phake::verify($file)->remove();
+    }
+
+    public function testRemoveNonExistant()
+    {
+        $prefix = 'root:';
+        $key = 'key';
+        $file = Phake::mock(FileInterface::class);
+        Phake::when($file)->exists()->thenReturn(new RejectedPromise());
+        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
+        (new Filesystem($this->filesystem, $prefix))->remove($key);
+        Phake::verify($this->filesystem)->file($prefix . $key);
+        Phake::verify($file, Phake::never())->remove();
     }
 }

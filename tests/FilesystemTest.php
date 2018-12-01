@@ -1,10 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace WyriHaximus\Tests\React\Cache;
 
-use Phake;
+use ApiClients\Tools\TestUtilities\TestCase;
 use React\EventLoop\Factory;
-use React\Filesystem\Filesystem as ReactFilesystem;
+use React\Filesystem\FilesystemInterface as ReactFilesystem;
 use React\Filesystem\Node\DirectoryInterface;
 use React\Filesystem\Node\FileInterface;
 use React\Promise\FulfilledPromise;
@@ -13,103 +13,91 @@ use React\Promise\RejectedPromise;
 use WyriHaximus\React\Cache\Filesystem;
 use function Clue\React\Block\await;
 
-class FilesystemTest extends \PHPUnit_Framework_TestCase
+/**
+ * @internal
+ */
+final class FilesystemTest extends TestCase
 {
     /**
      * @var ReactFilesystem
      */
     protected $filesystem;
 
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
-        $this->filesystem = Phake::mock(ReactFilesystem::class);
+        $this->filesystem = $this->prophesize(ReactFilesystem::class);
     }
 
-    public function testGet()
+    public function testGet(): void
     {
         $prefix = 'root:';
         $key = 'key';
         $value = 'value';
-        $file = Phake::mock(FileInterface::class);
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        Phake::when($file)->exists()->thenReturn(new FulfilledPromise());
-        Phake::when($file)->getContents()->thenReturn(new FulfilledPromise($value));
-        $promise = (new Filesystem($this->filesystem, $prefix))->get($key);
+        $file = $this->prophesize(FileInterface::class);
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        $file->exists()->shouldBeCalled()->willReturn(new FulfilledPromise());
+        $file->getContents()->shouldBeCalled()->willReturn(new FulfilledPromise($value));
+        $promise = (new Filesystem($this->filesystem->reveal(), $prefix))->get($key);
         $this->assertInstanceOf(PromiseInterface::class, $promise);
         $result = await($promise, Factory::create());
         $this->assertSame($value, $result);
-        Phake::inOrder(
-            Phake::verify($file)->exists(),
-            Phake::verify($file)->getContents()
-        );
     }
 
-    public function testGetNonExistant()
+    public function testGetNonExistant(): void
     {
         $prefix = 'root:';
         $key = 'key';
-        $file = Phake::mock(FileInterface::class);
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        Phake::when($file)->exists()->thenReturn(new RejectedPromise());
-        Phake::when($file)->getContents()->thenReturn(new RejectedPromise());
-        $promise = (new Filesystem($this->filesystem, $prefix))->get($key);
+        $file = $this->prophesize(FileInterface::class);
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        $file->exists()->shouldBeCalled()->shouldBeCalled()->willReturn(new RejectedPromise());
+        $file->getContents()->shouldNotBeCalled();
+        $promise = (new Filesystem($this->filesystem->reveal(), $prefix))->get($key);
         $this->assertInstanceOf(PromiseInterface::class, $promise);
         $this->assertInstanceOf(RejectedPromise::class, $promise);
-        Phake::verify($file)->exists();
-        Phake::verify($file, Phake::never())->get();
     }
 
-    public function testSet()
+    public function testSet(): void
     {
         $prefix = 'root:';
         $key = 'key';
         $value = 'value';
-        $file = Phake::mock(FileInterface::class);
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        (new Filesystem($this->filesystem, $prefix))->set($key, $value);
-        Phake::verify($this->filesystem)->file($prefix . $key);
-        Phake::verify($file)->putContents($value);
+        $file = $this->prophesize(FileInterface::class);
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        (new Filesystem($this->filesystem->reveal(), $prefix))->set($key, $value);
     }
 
-    public function testSetMakeDirectory()
+    public function testSetMakeDirectory(): void
     {
         $prefix = '/tmp/';
         $key = 'path/to/key';
         $dirKey = 'path/to';
         $value = 'value';
-        $file = Phake::mock(FileInterface::class);
-        $dir = Phake::mock(DirectoryInterface::class);
-        Phake::when($dir)->createRecursive()->thenReturn(new FulfilledPromise());
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        Phake::when($this->filesystem)->dir($prefix . $dirKey)->thenReturn($dir);
-        (new Filesystem($this->filesystem, $prefix))->set($key, $value);
-        Phake::verify($this->filesystem)->file($prefix . $key);
-        Phake::verify($this->filesystem)->dir($prefix . $dirKey);
-        Phake::verify($file)->putContents($value);
+        $file = $this->prophesize(FileInterface::class);
+        $dir = $this->prophesize(DirectoryInterface::class);
+        $dir->createRecursive()->shouldBeCalled()->willReturn(new FulfilledPromise());
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        $this->filesystem->dir($prefix . $dirKey)->shouldBeCalled()->willReturn($dir->reveal());
+        (new Filesystem($this->filesystem->reveal(), $prefix))->set($key, $value);
     }
 
-    public function testRemove()
+    public function testRemove(): void
     {
         $prefix = 'root:';
         $key = 'key';
-        $file = Phake::mock(FileInterface::class);
-        Phake::when($file)->exists()->thenReturn(new FulfilledPromise());
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        (new Filesystem($this->filesystem, $prefix))->remove($key);
-        Phake::verify($this->filesystem)->file($prefix . $key);
-        Phake::verify($file)->remove();
+        $file = $this->prophesize(FileInterface::class);
+        $file->exists()->shouldBeCalled()->willReturn(new FulfilledPromise());
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        (new Filesystem($this->filesystem->reveal(), $prefix))->remove($key);
     }
 
-    public function testRemoveNonExistant()
+    public function testRemoveNonExistant(): void
     {
         $prefix = 'root:';
         $key = 'key';
-        $file = Phake::mock(FileInterface::class);
-        Phake::when($file)->exists()->thenReturn(new RejectedPromise());
-        Phake::when($this->filesystem)->file($prefix . $key)->thenReturn($file);
-        (new Filesystem($this->filesystem, $prefix))->remove($key);
-        Phake::verify($this->filesystem)->file($prefix . $key);
-        Phake::verify($file, Phake::never())->remove();
+        $file = $this->prophesize(FileInterface::class);
+        $file->exists()->shouldBeCalled()->willReturn(new RejectedPromise());
+        $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
+        (new Filesystem($this->filesystem->reveal(), $prefix))->remove($key);
     }
 }

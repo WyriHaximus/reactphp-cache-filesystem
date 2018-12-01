@@ -1,9 +1,9 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace WyriHaximus\React\Cache;
 
 use React\Cache\CacheInterface;
-use React\Filesystem\Filesystem as ReactFilesystem;
+use React\Filesystem\FilesystemInterface as ReactFilesystem;
 use React\Filesystem\Node\FileInterface;
 use React\Promise\PromiseInterface;
 
@@ -22,7 +22,7 @@ class Filesystem implements CacheInterface
     /**
      * filesystem constructor.
      * @param ReactFilesystem $filesystem
-     * @param string $path
+     * @param string          $path
      */
     public function __construct(ReactFilesystem $filesystem, $path)
     {
@@ -31,12 +31,13 @@ class Filesystem implements CacheInterface
     }
 
     /**
-     * @param string $key
+     * @param  string           $key
      * @return PromiseInterface
      */
     public function get($key)
     {
         $file = $this->getFile($key);
+
         return $file->exists()->then(function () use ($file) {
             return $file->getContents();
         });
@@ -44,21 +45,22 @@ class Filesystem implements CacheInterface
 
     /**
      * @param string $key
-     * @param mixed $value
+     * @param mixed  $value
      */
-    public function set($key, $value)
+    public function set($key, $value): void
     {
         $file = $this->getFile($key);
-        if (strpos($key, DIRECTORY_SEPARATOR) === false) {
+        if (\strpos($key, DIRECTORY_SEPARATOR) === false) {
             $file->putContents($value);
+
             return;
         }
 
-        $path = explode(DIRECTORY_SEPARATOR, $key);
-        array_pop($path);
-        $path = implode(DIRECTORY_SEPARATOR, $path);
+        $path = \explode(DIRECTORY_SEPARATOR, $key);
+        \array_pop($path);
+        $path = \implode(DIRECTORY_SEPARATOR, $path);
 
-        $this->filesystem->dir($this->path . $path)->createRecursive()->then(function () use ($file, $value) {
+        $this->filesystem->dir($this->path . $path)->createRecursive()->then(function () use ($file, $value): void {
             $file->putContents($value);
         });
     }
@@ -66,10 +68,10 @@ class Filesystem implements CacheInterface
     /**
      * @param string $key
      */
-    public function remove($key)
+    public function remove($key): void
     {
         $file = $this->getFile($key);
-        $file->exists()->then(function () use ($file) {
+        $file->exists()->then(function () use ($file): void {
             $file->remove();
         });
     }

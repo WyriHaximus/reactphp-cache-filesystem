@@ -1,5 +1,6 @@
 {
     "name": "wyrihaximus/react-cache-filesystem",
+    "description": "react/filesystem cache for react/cache",
     "license": "MIT",
     "authors": [
         {

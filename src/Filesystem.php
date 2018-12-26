@@ -50,15 +50,15 @@ class Filesystem implements CacheInterface
     public function set($key, $value): void
     {
         $file = $this->getFile($key);
-        if (\strpos($key, DIRECTORY_SEPARATOR) === false) {
+        if (\strpos($key, \DIRECTORY_SEPARATOR) === false) {
             $file->putContents($value);
 
             return;
         }
 
-        $path = \explode(DIRECTORY_SEPARATOR, $key);
+        $path = \explode(\DIRECTORY_SEPARATOR, $key);
         \array_pop($path);
-        $path = \implode(DIRECTORY_SEPARATOR, $path);
+        $path = \implode(\DIRECTORY_SEPARATOR, $path);
 
         $this->filesystem->dir($this->path . $path)->createRecursive()->then(function () use ($file, $value): void {
             $file->putContents($value);

@@ -10,7 +10,7 @@
     ],
     "require": {
         "php": "^7.2",
-        "react/cache": "^0.4.1",
+        "react/cache": "^0.4.1 || ^0.5.0",
         "react/filesystem": "dev-master"
     },
     "require-dev": {

@@ -2,21 +2,23 @@
 
 namespace WyriHaximus\Tests\React\Cache;
 
-use ApiClients\Tools\TestUtilities\TestCase;
+use function Clue\React\Block\await;
 use React\EventLoop\Factory;
 use React\Filesystem\FilesystemInterface as ReactFilesystem;
 use React\Filesystem\Node\DirectoryInterface;
 use React\Filesystem\Node\FileInterface;
 use React\Promise\FulfilledPromise;
 use React\Promise\PromiseInterface;
+use function React\Promise\reject;
 use React\Promise\RejectedPromise;
+use function React\Promise\resolve;
+use WyriHaximus\AsyncTestUtilities\AsyncTestCase;
 use WyriHaximus\React\Cache\Filesystem;
-use function Clue\React\Block\await;
 
 /**
  * @internal
  */
-final class FilesystemTest extends TestCase
+final class FilesystemTest extends AsyncTestCase
 {
     /**
      * @var ReactFilesystem
@@ -50,11 +52,12 @@ final class FilesystemTest extends TestCase
         $key = 'key';
         $file = $this->prophesize(FileInterface::class);
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
-        $file->exists()->shouldBeCalled()->shouldBeCalled()->willReturn(new RejectedPromise());
+        $file->exists()->shouldBeCalled()->shouldBeCalled()->willReturn(reject(new \Exception('Doesn\'t exist')));
         $file->getContents()->shouldNotBeCalled();
         $promise = (new Filesystem($this->filesystem->reveal(), $prefix))->get($key);
         $this->assertInstanceOf(PromiseInterface::class, $promise);
-        $this->assertInstanceOf(RejectedPromise::class, $promise);
+        $this->assertInstanceOf(FulfilledPromise::class, $promise);
+        self::assertSame(null, $this->await($promise));
     }
 
     public function testSet(): void
@@ -63,6 +66,7 @@ final class FilesystemTest extends TestCase
         $key = 'key';
         $value = 'value';
         $file = $this->prophesize(FileInterface::class);
+        $file->putContents($value)->shouldBeCalled()->willReturn(resolve(true));
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
         (new Filesystem($this->filesystem->reveal(), $prefix))->set($key, $value);
     }
@@ -74,6 +78,7 @@ final class FilesystemTest extends TestCase
         $dirKey = 'path/to';
         $value = 'value';
         $file = $this->prophesize(FileInterface::class);
+        $file->putContents($value)->shouldBeCalled()->willReturn(resolve(true));
         $dir = $this->prophesize(DirectoryInterface::class);
         $dir->createRecursive()->shouldBeCalled()->willReturn(new FulfilledPromise());
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
@@ -88,7 +93,7 @@ final class FilesystemTest extends TestCase
         $file = $this->prophesize(FileInterface::class);
         $file->exists()->shouldBeCalled()->willReturn(new FulfilledPromise());
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
-        (new Filesystem($this->filesystem->reveal(), $prefix))->remove($key);
+        (new Filesystem($this->filesystem->reveal(), $prefix))->delete($key);
     }
 
     public function testRemoveNonExistant(): void
@@ -98,6 +103,6 @@ final class FilesystemTest extends TestCase
         $file = $this->prophesize(FileInterface::class);
         $file->exists()->shouldBeCalled()->willReturn(new RejectedPromise());
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
-        (new Filesystem($this->filesystem->reveal(), $prefix))->remove($key);
+        (new Filesystem($this->filesystem->reveal(), $prefix))->delete($key);
     }
 }

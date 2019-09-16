@@ -9,12 +9,12 @@
     ],
     "require": {
         "php": "^7.2",
-        "react/cache": "^0.4.1",
-        "react/filesystem": "dev-master"
+        "react/cache": "^1.0",
+        "react/filesystem": "^0.1"
     },
     "require-dev": {
-        "api-clients/cs-fixer-config": "^1.1",
-        "api-clients/test-utilities": "^5.2"
+        "wyrihaximus/cs-fixer-config": "^1.0",
+        "wyrihaximus/async-test-utilities": "^1.1"
     },
     "autoload": {
         "psr-4": {

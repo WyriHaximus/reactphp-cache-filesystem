@@ -34,6 +34,16 @@ final class FunctionalTest extends AsyncTestCase
         self::assertFalse($this->await($this->filesystem->has($fileName), $this->loop));
     }
 
+    public function testGettingExpiredItem(): void
+    {
+        $fileName = 'file.name';
+        $default = 'Sober!';
+
+        $this->await($this->filesystem->set($fileName, 'Alcohol!', 1.234), $this->loop);
+        sleep(3);
+        self::assertSame($default, $this->await($this->filesystem->get($fileName, $default), $this->loop));
+    }
+
     public function testCannotDeleteNonExistingItem(): void
     {
         $fileName = 'file.name';

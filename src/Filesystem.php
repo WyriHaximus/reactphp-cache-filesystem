@@ -6,12 +6,12 @@ use React\Cache\CacheInterface;
 use React\Filesystem\FilesystemInterface as ReactFilesystem;
 use React\Filesystem\Node\FileInterface;
 use React\Filesystem\Node\NodeInterface;
-use function React\Promise\all;
 use React\Promise\Promise;
 use React\Promise\PromiseInterface;
+use Throwable;
+use function React\Promise\all;
 use function React\Promise\reject;
 use function React\Promise\resolve;
-use Throwable;
 
 final class Filesystem implements CacheInterface
 {
@@ -46,28 +46,30 @@ final class Filesystem implements CacheInterface
     /**
      * @param  string           $key
      * @param  null|mixed       $default
-     * @return PromiseInterface
      */
     public function get($key, $default = null): PromiseInterface
     {
         return $this->has($key)->then(function (bool $has) use ($key, $default) {
             if ($has === true) {
                 return $this->getFile($key)
-                            ->getContents()
-                            ->then(
-                                function (CacheItem $cacheItem) use ($key, $default) {
-                                    if ($cacheItem->hasExpired($this->now())) {
-                                        return $this->getFile($key)
-                                                    ->remove()
-                                                    ->then(
-                                                        function () use ($default) {
-                                                            return resolve($default);
-                                                        }
-                                                    );
-                                    }
-                                    return resolve(unserialize($cacheItem->getData()));
-                                }
-                            );
+                    ->getContents()
+                    ->then(static function (string $contents) {
+                        return unserialize($contents);
+                    })
+                    ->then(
+                        function (CacheItem $cacheItem) use ($key, $default) {
+                            if ($cacheItem->hasExpired($this->now())) {
+                                return $this->getFile($key)
+                                    ->remove()
+                                    ->then(
+                                        function () use ($default) {
+                                            return resolve($default);
+                                        }
+                                    );
+                            }
+                            return resolve($cacheItem->data());
+                        }
+                    );
             }
 
             return resolve($default);

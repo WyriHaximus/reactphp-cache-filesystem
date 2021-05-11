@@ -2,6 +2,7 @@
 
 namespace WyriHaximus\Tests\React\Cache;
 
+use WyriHaximus\React\Cache\CacheItem;
 use function Clue\React\Block\await;
 use React\EventLoop\Factory;
 use React\Filesystem\FilesystemInterface as ReactFilesystem;
@@ -39,7 +40,7 @@ final class FilesystemTest extends AsyncTestCase
         $file = $this->prophesize(FileInterface::class);
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
         $file->exists()->shouldBeCalled()->willReturn(new FulfilledPromise());
-        $file->getContents()->shouldBeCalled()->willReturn(new FulfilledPromise($value));
+        $file->getContents()->shouldBeCalled()->willReturn(new FulfilledPromise(serialize(new CacheItem($value))));
         $promise = (new Filesystem($this->filesystem->reveal(), $prefix))->get($key);
         $this->assertInstanceOf(PromiseInterface::class, $promise);
         $result = await($promise, Factory::create());
@@ -66,7 +67,7 @@ final class FilesystemTest extends AsyncTestCase
         $key = 'key';
         $value = 'value';
         $file = $this->prophesize(FileInterface::class);
-        $file->putContents($value)->shouldBeCalled()->willReturn(resolve(true));
+        $file->putContents(serialize(new CacheItem($value)))->shouldBeCalled()->willReturn(resolve(true));
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());
         (new Filesystem($this->filesystem->reveal(), $prefix))->set($key, $value);
     }
@@ -78,7 +79,7 @@ final class FilesystemTest extends AsyncTestCase
         $dirKey = 'path/to';
         $value = 'value';
         $file = $this->prophesize(FileInterface::class);
-        $file->putContents($value)->shouldBeCalled()->willReturn(resolve(true));
+        $file->putContents(serialize(new CacheItem($value)))->shouldBeCalled()->willReturn(resolve(true));
         $dir = $this->prophesize(DirectoryInterface::class);
         $dir->createRecursive()->shouldBeCalled()->willReturn(new FulfilledPromise());
         $this->filesystem->file($prefix . $key)->shouldBeCalled()->willReturn($file->reveal());

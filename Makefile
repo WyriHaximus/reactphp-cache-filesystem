@@ -23,7 +23,7 @@ cs-fix:
 	composer cs-fix
 
 unit:
-	composer run-script unit --timeout=0
+	./vendor/bin/phpunit
 
 unit-coverage:
 	composer run-script unit-coverage --timeout=0

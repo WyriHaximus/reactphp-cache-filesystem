@@ -26,6 +26,11 @@ final class Filesystem implements CacheInterface
     private $path;
 
     /**
+     * @var bool
+     */
+    private $supportsHighResolution;
+
+    /**
      * filesystem constructor.
      * @param ReactFilesystem $filesystem
      * @param string          $path
@@ -34,6 +39,8 @@ final class Filesystem implements CacheInterface
     {
         $this->filesystem = $filesystem;
         $this->path = $path;
+        // prefer high-resolution timer, available as of PHP 7.3+
+        $this->supportsHighResolution = \function_exists('hrtime');
     }
 
     /**
@@ -45,7 +52,22 @@ final class Filesystem implements CacheInterface
     {
         return $this->has($key)->then(function (bool $has) use ($key, $default) {
             if ($has === true) {
-                return $this->getFile($key)->getContents();
+                return $this->getFile($key)
+                            ->getContents()
+                            ->then(
+                                function (CacheItem $cacheItem) use ($key, $default) {
+                                    if ($cacheItem->hasExpired($this->now())) {
+                                        return $this->getFile($key)
+                                                    ->remove()
+                                                    ->then(
+                                                        function () use ($default) {
+                                                            return resolve($default);
+                                                        }
+                                                    );
+                                    }
+                                    return resolve(unserialize($cacheItem->getData()));
+                                }
+                            );
             }
 
             return resolve($default);
@@ -55,13 +77,13 @@ final class Filesystem implements CacheInterface
     /**
      * @param string     $key
      * @param mixed      $value
-     * @param null|mixed $ttl
+     * @param ?float     $ttl
      */
     public function set($key, $value, $ttl = null): PromiseInterface
     {
         $file = $this->getFile($key);
         if (\strpos($key, \DIRECTORY_SEPARATOR) === false) {
-            return $this->putContents($file, $value);
+            return $this->putContents($file, $value, $ttl);
         }
 
         $path = \explode(\DIRECTORY_SEPARATOR, $key);
@@ -76,8 +98,8 @@ final class Filesystem implements CacheInterface
             }
 
             return reject($error);
-        })->then(function () use ($file, $value): PromiseInterface {
-            return $this->putContents($file, $value);
+        })->then(function () use ($file, $value, $ttl): PromiseInterface {
+            return $this->putContents($file, $value, $ttl);
         });
     }
 
@@ -168,9 +190,10 @@ final class Filesystem implements CacheInterface
         });
     }
 
-    private function putContents(FileInterface $file, $value): PromiseInterface
+    private function putContents(FileInterface $file, $value, $ttl): PromiseInterface
     {
-        return $file->putContents($value)->then(function () {
+        $item = new CacheItem($value, is_null($ttl) ? null : ($this->now() + $ttl));
+        return $file->putContents(serialize($item))->then(function () {
             return resolve(true);
         }, function () {
             return resolve(false);
@@ -184,5 +207,13 @@ final class Filesystem implements CacheInterface
     private function getFile($key): FileInterface
     {
         return $this->filesystem->file($this->path . $key);
+    }
+
+    /**
+     * @return float
+     */
+    private function now()
+    {
+        return $this->supportsHighResolution ? \hrtime(true) * 1e-9 : \microtime(true);
     }
 }

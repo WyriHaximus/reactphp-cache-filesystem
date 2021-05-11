@@ -13,8 +13,8 @@ class CacheItemTest extends \PHPUnit\Framework\TestCase
     {
         $time    = 123456;
         $subject = new CacheItem($data = ['abc' => 123], $time);
-        self::assertEquals($data, $subject->getData());
-        self::assertEquals($time, $subject->getExpiresAt());
+        self::assertEquals($data, $subject->data());
+        self::assertEquals($time, $subject->expiresAt());
 
         self::assertTrue($subject->hasExpired($time + 1));
         self::assertFalse($subject->hasExpired($time));

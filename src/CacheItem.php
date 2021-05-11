@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace WyriHaximus\React\Cache;
 
 /**
- * one item in a cache. Only used locally within the cache
+ * One item in a cache. Only used locally within the cache
+ * @internal
  */
-class CacheItem
+final class CacheItem
 {
     /** @var mixed the data to be cached */
     private $data;
@@ -25,14 +26,13 @@ class CacheItem
         $this->expiresAt = $expiresAtTime;
     }
 
-    public function getExpiresAt(): ?float
+    public function expiresAt(): ?float
     {
         return $this->expiresAt;
     }
 
     /**
      * @param float|null $now current time
-     * @return bool
      */
     public function hasExpired(float $now = null): bool
     {
@@ -42,7 +42,7 @@ class CacheItem
     /**
      * @return mixed
      */
-    public function getData()
+    public function data()
     {
         return $this->data;
     }

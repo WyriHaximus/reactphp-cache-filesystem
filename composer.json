@@ -9,14 +9,23 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": "^7.4 || ^8",
         "react/cache": "^1.0",
-        "react/filesystem": "^0.1"
+        "react/filesystem": "dev-rewrite as 0.1.999"
     },
     "require-dev": {
         "wyrihaximus/cs-fixer-config": "^1.0",
         "wyrihaximus/async-test-utilities": "^1.1"
     },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/WyriHaximus-labs/filesystem",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
     "autoload": {
         "psr-4": {
             "WyriHaximus\\React\\Cache\\": "src/"
@@ -30,7 +39,7 @@
     "config": {
         "sort-packages": true,
         "platform": {
-            "php": "7.2"
+            "php": "7.4"
         }
     },
     "scripts": {

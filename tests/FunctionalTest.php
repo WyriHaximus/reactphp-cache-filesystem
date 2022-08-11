@@ -4,7 +4,7 @@ namespace WyriHaximus\Tests\React\Cache;
 
 use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
-use React\Filesystem\Filesystem as ReactFilesystem;
+use React\Filesystem\Factory as ReactFilesystem;
 use WyriHaximus\AsyncTestUtilities\AsyncTestCase;
 use WyriHaximus\React\Cache\Filesystem;
 
